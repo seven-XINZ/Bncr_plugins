@@ -2,7 +2,7 @@
  *  @author victor_li
  *  @name ssh连接
  *  @origin VICTOR
- *  @version 1.0.0
+ *  @version 1.0.2
  *  @description ssh连接
  *  @rule ^sh$
  *  @admin true
@@ -13,11 +13,9 @@
 const { NodeSSH } = require('node-ssh');
 
 const jsonSchema = BncrCreateSchema.object({
-    host: BncrCreateSchema.string().setTitle('主机地址').setDescription(`配置主机的ip或者域名`).setDefault('127.0.0.1'),
-    port: BncrCreateSchema.string().setTitle('主机端口').setDescription(`配置主机的端口`).setDefault('22'),
-    user: BncrCreateSchema.string().setTitle('用户').setDescription(`配置主机用户`).setDefault('root'),
-    password: BncrCreateSchema.string().setTitle('密码').setDescription(`配置主机密码`).setDefault('123456'),
+    stringArr: BncrCreateSchema.array(BncrCreateSchema.string()).setTitle('设置主机列表').setDescription(`设置多个主机信息,按该格式填写：username@ip@port@password@remark，如：root@127.0.0.1@22@123456@n1`).setDefault(["root@127.0.0.1@22@123456@n1"]),
 });
+
 
 const ConfigDB = new BncrPluginConfig(jsonSchema);
 const ssh = new NodeSSH();
@@ -25,9 +23,14 @@ module.exports = async s => {
     await ConfigDB.get();
     //自动安装依赖
     sysMethod.testModule(['node-ssh'], { install: true });
-
+    var hostarr = ConfigDB.userConfig['stringArr']
+    var remark = await formatRemarks(hostarr)
+    await s.reply("【主机列表】\n" + remark + "\n请在30s内输入你要执行命令的主机编号[输入q退出]：") 
+    var getinput = await s.waitInput(() => {}, 30);
+    var hostnumber = getinput.getMsg()
+    var hostinfo = await parseStringToObject(hostarr[+hostnumber-1])
+    console.log(hostinfo)
     await s.reply("请在30s内输入你要执行的命令[输入q退出]：");
-
     while (true) {
         let newMsg = await s.waitInput(() => {}, 30);
         if (!newMsg || newMsg === "null") {
@@ -49,41 +52,41 @@ module.exports = async s => {
             await s.reply("切换到目录:" + currentPath + "\n请继续输入[输入q退出]：");
             continue; // 继续下一次循环，不执行命令
         }
-        let info = await executeCommand(command, currentPath, s, ssh);
-        await s.reply(info + "\n请继续输入[输入q退出]：")
-        
-    }
-    
+        let info = await executeCommand(command, currentPath, s, ssh, hostinfo);
+        await s.reply(info + "\n请继续输入[输入q退出]：")  
+    }   
+}
+async function formatRemarks(arr) {
+    let formattedRemarks = "";
+    arr.forEach((element, index) => {
+        const parts = element.split('@');
+        const remark = parts[4] ? parts[4] : "";
+        formattedRemarks += `${index + 1}.${remark}\n`;
+    });
+    return formattedRemarks.trim();
 }
 
-async function executeCommand(command, path, s, ssh) {
+async function parseStringToObject(str) {
+    const [username, host, port, password] = str.split('@');
+    const obj = {
+        username,
+        host,
+        port,
+        password
+    };
+    return obj;
+}
+
+async function executeCommand(command, path, s, ssh, hostinfo) {
     try {
-        
-        const ssh_host = ConfigDB.userConfig['host'];
-        const ssh_user = ConfigDB.userConfig['user'];
-        const ssh_pwd = ConfigDB.userConfig['password'];
-        const ssh_port = ConfigDB.userConfig['port'];
-
-        if (!ssh_host || !ssh_user || !ssh_pwd) {
-            throw new Error("请先在web端完成插件首次配置");
-        }
-
-        await ssh.connect({
-            host: ssh_host,
-            username: ssh_user,
-            password: ssh_pwd,
-            port: ssh_port
-        });
+        await ssh.connect(hostinfo);
 
         const result = await ssh.execCommand(command, { cwd: path });
 
         if (result.stdout) {
-            return result.stdout
-            //s.reply(result.stdout);
-            
+            return result.stdout  
         } else {
             return result.stderr
-            //await s.reply(result.stderr);
         }
     } catch (error) {
         await s.reply('出现错误：' + error.message);
