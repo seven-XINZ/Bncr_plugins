@@ -2,7 +2,7 @@
  *  @author victor_li
  *  @name ssh连接
  *  @origin VICTOR
- *  @version 1.0.2
+ *  @version 1.0.3
  *  @description ssh连接
  *  @rule ^sh$
  *  @admin true
@@ -27,9 +27,23 @@ module.exports = async s => {
     var remark = await formatRemarks(hostarr)
     await s.reply("【主机列表】\n" + remark + "\n请在30s内输入你要执行命令的主机编号[输入q退出]：") 
     var getinput = await s.waitInput(() => {}, 30);
-    var hostnumber = getinput.getMsg()
-    var hostinfo = await parseStringToObject(hostarr[+hostnumber-1])
-    console.log(hostinfo)
+    if(!getinput || getinput === "null") {
+    		return await s.reply("超时退出")
+    }
+    else {
+		var hostnumber = getinput.getMsg()
+		if(hostnumber === "q") {
+			return await s.reply("退出命令行~")
+		}
+		else if(isNaN(hostnumber)){
+			return await s.reply("输入错误，已退出~")
+		}
+		else {
+			var hostinfo = await parseStringToObject(hostarr[+hostnumber-1])
+			console.log(hostinfo)	
+		}
+
+    }
     await s.reply("请在30s内输入你要执行的命令[输入q退出]：");
     while (true) {
         let newMsg = await s.waitInput(() => {}, 30);
