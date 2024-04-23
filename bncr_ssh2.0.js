@@ -2,7 +2,7 @@
  *  @author victor_li
  *  @name ssh连接
  *  @origin VICTOR
- *  @version 1.0.3
+ *  @version 1.1.0
  *  @description ssh连接
  *  @rule ^sh$
  *  @admin true
