@@ -6,7 +6,7 @@
  *  @description lsp
  *  @rule ^(疯狂星期四)$
  *  @admin false
- *  @public false
+ *  @public truee
  *  @priority 99999
  *  @disable false
  *  @cron 16 3 10 * * *
