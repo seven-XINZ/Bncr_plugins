@@ -1,7 +1,7 @@
 /**
- *  @author victor_li
+ *  @author seven
  *  @name 疯狂星期四语录
- *  @origin VICTOR
+ *  @team xinz
  *  @version 1.0.0
  *  @description lsp
  *  @rule ^(疯狂星期四)$
